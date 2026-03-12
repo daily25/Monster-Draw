@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  color: #1a1a2e;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Prevent pull-to-refresh on mobile when drawing */
+html, body {
+  overscroll-behavior: none;
+}
+
+.font-display {
+  font-family: 'Fredoka One', cursive;
+}
+
+/* Fold animation keyframes */
+@keyframes unfold-section {
+  0% {
+    transform: rotateX(-90deg);
+    opacity: 0.3;
+  }
+  60% {
+    transform: rotateX(10deg);
+    opacity: 1;
+  }
+  80% {
+    transform: rotateX(-5deg);
+  }
+  100% {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+}
+
+.unfold {
+  animation: unfold-section 1.2s ease-out forwards;
+  transform-origin: top center;
+  perspective: 800px;
+}
+
+.unfold-delay-1 {
+  animation-delay: 0s;
+}
+
+.unfold-delay-2 {
+  animation-delay: 1.5s;
+}
+
+.unfold-delay-3 {
+  animation-delay: 3s;
+}
+
+/* Paper texture */
+.paper {
+  background: #fefef9;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1), inset 0 0 40px rgba(0, 0, 0, 0.03);
+  border-radius: 8px;
+}
+
+/* Big button styles for kids */
+.btn-primary {
+  @apply font-bold py-4 px-8 rounded-2xl text-white text-xl
+    transition-all duration-150 active:scale-95
+    shadow-lg hover:shadow-xl;
+  background: linear-gradient(135deg, #7C3AED, #EC4899);
+}
+
+.btn-secondary {
+  @apply font-bold py-3 px-6 rounded-2xl text-white text-lg
+    transition-all duration-150 active:scale-95
+    shadow-md hover:shadow-lg;
+  background: linear-gradient(135deg, #3B82F6, #10B981);
+}
