@@ -2,8 +2,11 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Stage, Layer, Line } from 'react-konva';
 import Konva from 'konva';
 import {
-  Stroke, RoundNumber, CANVAS_WIDTH, CANVAS_HEIGHT,
-  FOLD_LINE_Y, ROUND_LABELS,
+  Stroke,
+  RoundNumber,
+  CANVAS_WIDTH,
+  ROUND_LABELS,
+  getRevealSectionHeight,
 } from 'monster-draw-shared';
 
 interface RevealScreenProps {
@@ -12,16 +15,24 @@ interface RevealScreenProps {
   onBack: () => void;
 }
 
-const SECTION_HEIGHT = FOLD_LINE_Y; // Each section shows up to the fold line
+const ROUND_ORDER: RoundNumber[] = [1, 2, 3];
 
 export default function RevealScreen({ ownerName, rounds, onBack }: RevealScreenProps) {
   const [revealedSections, setRevealedSections] = useState(0);
   const [isRevealing, setIsRevealing] = useState(false);
   const combinedStageRef = useRef<Konva.Stage>(null);
 
-  // Responsive sizing
   const maxWidth = Math.min(window.innerWidth - 32, CANVAS_WIDTH);
   const scale = maxWidth / CANVAS_WIDTH;
+
+  const logicalSectionHeights = ROUND_ORDER.map((roundNum) => getRevealSectionHeight(roundNum));
+  const logicalSectionOffsets = logicalSectionHeights.map((_, index) =>
+    logicalSectionHeights.slice(0, index).reduce((sum, height) => sum + height, 0)
+  );
+  const scaledSectionHeights = logicalSectionHeights.map((height) => height * scale);
+  const scaledSectionOffsets = logicalSectionOffsets.map((offset) => offset * scale);
+  const totalHeight = scaledSectionHeights.reduce((sum, height) => sum + height, 0);
+  const exportHeight = logicalSectionHeights.reduce((sum, height) => sum + height, 0);
 
   const startReveal = () => {
     setIsRevealing(true);
@@ -48,9 +59,6 @@ export default function RevealScreen({ ownerName, rounds, onBack }: RevealScreen
     link.click();
   }, [ownerName]);
 
-  const sectionHeight = SECTION_HEIGHT * scale;
-  const totalHeight = sectionHeight * 3;
-
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 gap-4">
       <h2 className="font-display text-3xl text-white text-center">
@@ -59,7 +67,6 @@ export default function RevealScreen({ ownerName, rounds, onBack }: RevealScreen
 
       {!isRevealing ? (
         <div className="text-center">
-          {/* Folded paper */}
           <div
             className="paper mx-auto mb-6 flex items-center justify-center"
             style={{ width: maxWidth, height: 120 }}
@@ -75,15 +82,16 @@ export default function RevealScreen({ ownerName, rounds, onBack }: RevealScreen
         </div>
       ) : (
         <>
-          {/* The unfolding sections */}
           <div
             className="relative"
             style={{ width: maxWidth, height: totalHeight, perspective: '1000px' }}
           >
-            {([1, 2, 3] as RoundNumber[]).map((roundNum) => {
+            {ROUND_ORDER.map((roundNum, index) => {
               const roundData = rounds[roundNum];
               if (!roundData) return null;
+
               const isVisible = revealedSections >= roundNum;
+              const sectionHeight = scaledSectionHeights[index];
 
               return (
                 <div
@@ -92,7 +100,7 @@ export default function RevealScreen({ ownerName, rounds, onBack }: RevealScreen
                     isVisible ? 'unfold unfold-delay-1' : ''
                   }`}
                   style={{
-                    top: (roundNum - 1) * sectionHeight,
+                    top: scaledSectionOffsets[index],
                     height: sectionHeight,
                     opacity: isVisible ? undefined : 0,
                     transformOrigin: 'top center',
@@ -107,9 +115,9 @@ export default function RevealScreen({ ownerName, rounds, onBack }: RevealScreen
                       scaleY={scale}
                     >
                       <Layer>
-                        {roundData.strokes.map((stroke, i) => (
+                        {roundData.strokes.map((stroke, strokeIndex) => (
                           <Line
-                            key={i}
+                            key={strokeIndex}
                             points={stroke.points}
                             stroke={stroke.color}
                             strokeWidth={stroke.width}
@@ -124,7 +132,6 @@ export default function RevealScreen({ ownerName, rounds, onBack }: RevealScreen
                       </Layer>
                     </Stage>
                   </div>
-                  {/* Artist credit */}
                   {isVisible && (
                     <div className="absolute bottom-1 right-2 text-xs text-gray-300 italic">
                       {ROUND_LABELS[roundNum]} by {roundData.artistName}
@@ -135,24 +142,23 @@ export default function RevealScreen({ ownerName, rounds, onBack }: RevealScreen
             })}
           </div>
 
-          {/* Hidden combined stage for PNG export */}
           {revealedSections >= 3 && (
             <>
               <div style={{ position: 'absolute', left: -9999 }}>
                 <Stage
                   ref={combinedStageRef}
                   width={CANVAS_WIDTH}
-                  height={CANVAS_HEIGHT * 3}
+                  height={exportHeight}
                 >
-                  {([1, 2, 3] as RoundNumber[]).map((roundNum) => {
+                  {ROUND_ORDER.map((roundNum, index) => {
                     const roundData = rounds[roundNum];
                     if (!roundData) return null;
-                    const offsetY = (roundNum - 1) * CANVAS_HEIGHT;
+
                     return (
-                      <Layer key={roundNum} y={offsetY}>
-                        {roundData.strokes.map((stroke, i) => (
+                      <Layer key={roundNum} y={logicalSectionOffsets[index]}>
+                        {roundData.strokes.map((stroke, strokeIndex) => (
                           <Line
-                            key={i}
+                            key={strokeIndex}
                             points={stroke.points}
                             stroke={stroke.color}
                             strokeWidth={stroke.width}

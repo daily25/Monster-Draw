@@ -2,12 +2,10 @@ import { useRef, useState, useCallback, useEffect, MutableRefObject } from 'reac
 import { Stage, Layer, Line, Text, Rect, Image as KonvaImage } from 'react-konva';
 import Konva from 'konva';
 import {
-  Stroke, ConnectionPoint, CANVAS_WIDTH, CANVAS_HEIGHT,
-  FOLD_LINE_Y, ROUND_LABELS, RoundNumber,
+  Stroke, ConnectionPoint, CANVAS_WIDTH,
+  ROUND_CANVAS_HEIGHTS, getFoldLineY, getFoldZoneHeight,
+  ROUND_LABELS, RoundNumber,
 } from 'monster-draw-shared';
-
-// Height of the "folded paper" zone showing the previous drawing's bottom edge
-const FOLD_ZONE_HEIGHT = 50;
 
 interface DrawingCanvasProps {
   round: RoundNumber;
@@ -37,9 +35,16 @@ export default function DrawingCanvas({
   stageRef: externalStageRef,
   readOnly = false,
   strokes: externalStrokes,
-  width = CANVAS_WIDTH,
-  height = CANVAS_HEIGHT,
+  width,
+  height,
 }: DrawingCanvasProps) {
+  const logicalHeight = ROUND_CANVAS_HEIGHTS[round];
+  const logicalWidth = CANVAS_WIDTH;
+  const canvasWidth = width || logicalWidth;
+  const canvasHeight = height || logicalHeight;
+  const foldLineY = getFoldLineY(round);
+  const foldZoneHeight = getFoldZoneHeight(round);
+
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [redoStack, setRedoStack] = useState<Stroke[]>([]);
   const [currentStroke, setCurrentStroke] = useState<Stroke | null>(null);
@@ -52,8 +57,8 @@ export default function DrawingCanvas({
   const stageRef = externalStageRef || internalStageRef;
 
   const displayStrokes = externalStrokes || strokes;
-  const scaleX = width / CANVAS_WIDTH;
-  const scaleY = height / CANVAS_HEIGHT;
+  const scaleX = canvasWidth / logicalWidth;
+  const scaleY = canvasHeight / logicalHeight;
 
   // Load the fold zone image when it changes
   useEffect(() => {
@@ -164,11 +169,11 @@ export default function DrawingCanvas({
       )}
 
       {/* Canvas */}
-      <div className="paper overflow-hidden" style={{ width, height, touchAction: 'none' }}>
+      <div className="paper overflow-hidden" style={{ width: canvasWidth, height: canvasHeight, touchAction: 'none' }}>
         <Stage
           ref={stageRef as any}
-          width={width}
-          height={height}
+          width={canvasWidth}
+          height={canvasHeight}
           scaleX={scaleX}
           scaleY={scaleY}
           onMouseDown={handlePointerDown}
@@ -189,7 +194,7 @@ export default function DrawingCanvas({
                   x={0}
                   y={0}
                   width={CANVAS_WIDTH}
-                  height={FOLD_ZONE_HEIGHT}
+                  height={foldZoneHeight}
                   fill="#f0ede6"
                 />
                 {/* The actual screenshot image from the previous drawing */}
@@ -199,18 +204,18 @@ export default function DrawingCanvas({
                     x={0}
                     y={0}
                     width={CANVAS_WIDTH}
-                    height={FOLD_ZONE_HEIGHT}
+                    height={foldZoneHeight}
                   />
                 )}
                 {/* Paper fold shadow / crease */}
                 <Line
-                  points={[0, FOLD_ZONE_HEIGHT, CANVAS_WIDTH, FOLD_ZONE_HEIGHT]}
+                  points={[0, foldZoneHeight, CANVAS_WIDTH, foldZoneHeight]}
                   stroke="#bbb"
                   strokeWidth={1.5}
                 />
                 <Rect
                   x={0}
-                  y={FOLD_ZONE_HEIGHT}
+                  y={foldZoneHeight}
                   width={CANVAS_WIDTH}
                   height={8}
                   fillLinearGradientStartPoint={{ x: 0, y: 0 }}
@@ -221,7 +226,7 @@ export default function DrawingCanvas({
                 <Text
                   text="^ continue from here ^"
                   x={CANVAS_WIDTH / 2 - 62}
-                  y={FOLD_ZONE_HEIGHT + 2}
+                  y={foldZoneHeight + 2}
                   fontSize={10}
                   fill="#aaa"
                   fontFamily="Nunito"
@@ -265,7 +270,7 @@ export default function DrawingCanvas({
             {showFoldLine && (
               <>
                 <Line
-                  points={[0, FOLD_LINE_Y, CANVAS_WIDTH, FOLD_LINE_Y]}
+                  points={[0, foldLineY, CANVAS_WIDTH, foldLineY]}
                   stroke="#aaa"
                   strokeWidth={2}
                   dash={[8, 6]}
@@ -273,7 +278,7 @@ export default function DrawingCanvas({
                 <Text
                   text="--- fold line ---"
                   x={CANVAS_WIDTH / 2 - 50}
-                  y={FOLD_LINE_Y + 4}
+                  y={foldLineY + 4}
                   fontSize={11}
                   fill="#bbb"
                   fontFamily="Nunito"
@@ -286,7 +291,7 @@ export default function DrawingCanvas({
 
       {/* Drawing tools */}
       {!readOnly && (
-        <div className="flex flex-col gap-2 w-full" style={{ maxWidth: width }}>
+        <div className="flex flex-col gap-2 w-full" style={{ maxWidth: canvasWidth }}>
           {/* Colors */}
           <div className="flex justify-center gap-1 flex-wrap">
             {COLORS.map((c) => (

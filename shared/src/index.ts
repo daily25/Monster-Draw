@@ -104,6 +104,31 @@ export interface ServerEvents {
 // ---- Canvas Constants ----
 
 export const CANVAS_WIDTH = 400;
+
+// Per-round canvas heights — proportional to a single sheet of paper
+export const ROUND_CANVAS_HEIGHTS: Record<RoundNumber, number> = {
+  1: 150,  // Head & Neck — small
+  2: 700,  // Body & Legs — largest section
+  3: 100,  // Feet & Shoes — tiny
+};
+
+// How many pixels from the bottom are captured as the fold zone
+export const FOLD_ZONE_OVERLAP = 40;
+
+// Fold line Y per round (where the dotted line sits)
+export function getFoldLineY(round: RoundNumber): number {
+  return ROUND_CANVAS_HEIGHTS[round] - FOLD_ZONE_OVERLAP;
+}
+
+export function getFoldZoneHeight(round: RoundNumber): number {
+  return FOLD_ZONE_OVERLAP;
+}
+
+export function getRevealSectionHeight(round: RoundNumber): number {
+  return round < 3 ? getFoldLineY(round) : ROUND_CANVAS_HEIGHTS[round];
+}
+
+// Legacy — kept for backward compat but prefer per-round values
 export const CANVAS_HEIGHT = 500;
-export const FOLD_LINE_Y = CANVAS_HEIGHT - 60; // dotted line position from top
-export const CONNECTION_ZONE_HEIGHT = 60; // area around fold line where connection points are captured
+export const FOLD_LINE_Y = CANVAS_HEIGHT - 60;
+export const CONNECTION_ZONE_HEIGHT = 60;
