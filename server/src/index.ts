@@ -19,6 +19,11 @@ const io = new Server<ClientEvents, ServerEvents>(httpServer, {
 
 app.use(cors());
 
+// Health check
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
+
 // In production, serve the built client
 if (process.env.NODE_ENV === 'production') {
   const clientDist = path.join(__dirname, '../../client/dist');
@@ -27,11 +32,6 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.join(clientDist, 'index.html'));
   });
 }
-
-// Health check
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok' });
-});
 
 io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id}`);
